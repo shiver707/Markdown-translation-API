@@ -17,25 +17,25 @@ jobs:
 
       - name: Send markdown to Translator API
         run: |
-          #현재 커밋(HEAD)과 바로 이전 커밋(HEAD~) 사이에서 변경된 마크다운 파일을 찾기.
+          #변경된 마크다운 파일 찾기
           CHANGED_FILE=$(git diff --name-only HEAD~1 HEAD | grep '^docs/.*\.md$' | head -n 1)
 
           if [ -z "$CHANGED_FILE" ]; then
-            echo "번역할 마크다운 파일 변경점을 찾지 못함."
+            echo "번역할 마크다운 파일 변경점을 찾지 못했습니다."
             exit 0
           fi
 
           echo "디텍팅된 파일: $CHANGED_FILE"
 
-          #파일 내용 읽기
-          ORIGINAL_TEXT=$(cat "$CHANGED_FILE")
+          #jq를 사용하여 줄바꿈과 특수문자가 모두 안전하게 이스케이프된 완벽한 JSON 파일을 생성.
+          jq -n --argument0 text "$(cat "$CHANGED_FILE")" '{"markdown_text": $text, "target_language": "Korean"}' > payload.json
 
-          #내 ngrok 주소 세팅
+          #내 고정 도메인 주소 세팅
           API_URL="https://favoring-baggage-goldfish.ngrok-free.dev/api/v1/translate"
 
-          #API 서버로 전송
+          #JSON 파일을 @payload.json 형식으로 안전하게 API 서버로 전송
           RESPONSE=$(curl -s -X POST "$API_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"markdown_text\": \"$ORIGINAL_TEXT\", \"target_language\": \"Korean\"}")
+            -d @payload.json)
 
           echo "서버 응답 결과: $RESPONSE"
