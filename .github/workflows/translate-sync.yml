@@ -36,6 +36,7 @@ jobs:
           #API 서버로 전송
           RESPONSE=$(curl -s -X POST "$API_URL" \
             -H "Content-Type: application/json" \
+            -H "ngrok-skip-browser-warning: true" \
             -d @payload.json)
 
           echo "서버 응답 결과: $RESPONSE"
