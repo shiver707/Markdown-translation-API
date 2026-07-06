@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "docs/**.md" #docs폴더 안의 마크다운 파일이 바뀔 때만 작동.
+      - "docs/**.md"
 
 jobs:
   translate:
@@ -12,11 +12,13 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 #이전 커밋 히스토리를 모두 가져와서 diff가 가능하게 끔.
 
       - name: Send markdown to Translator API
         run: |
-          #docs 폴더 안에서 가장 최근에 수정된 마크다운 파일명을 찾아냄.
-          CHANGED_FILE=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | grep '^docs/.*\.md$' | head -n 1)
+          #현재 커밋(HEAD)과 바로 이전 커밋(HEAD~) 사이에서 변경된 마크다운 파일을 찾기.
+          CHANGED_FILE=$(git diff --name-only HEAD~1 HEAD | grep '^docs/.*\.md$' | head -n 1)
 
           if [ -z "$CHANGED_FILE" ]; then
             echo "번역할 마크다운 파일 변경점을 찾지 못함."
@@ -28,10 +30,10 @@ jobs:
           #파일 내용 읽기
           ORIGINAL_TEXT=$(cat "$CHANGED_FILE")
 
-          #여기에 ngrok이 준 임시 주소를 넣음 (끝에 /api/v1/translate 붙이기)
-          API_URL="https://ee15-115-128-28-120.ngrok-free.app"
+          #내 ngrok 주소 세팅
+          API_URL="https://favoring-baggage-goldfish.ngrok-free.dev/api/v1/translate"
 
-          #API 서버로 마크다운 데이터 전송 후 응답 받기
+          #API 서버로 전송
           RESPONSE=$(curl -s -X POST "$API_URL" \
             -H "Content-Type: application/json" \
             -d "{\"markdown_text\": \"$ORIGINAL_TEXT\", \"target_language\": \"Korean\"}")
